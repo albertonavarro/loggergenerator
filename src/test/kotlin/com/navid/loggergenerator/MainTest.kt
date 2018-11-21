@@ -11,7 +11,8 @@ class TestSource() {
         com.navid.loggergenerator.main(
                 arrayOf(
                         "--input", filePath.path,
-                        "--package", "com.example.helloworld"))
+                        "--package", "com.example.helloworld",
+                        "--output", "zzz"))
 
         //then
     }

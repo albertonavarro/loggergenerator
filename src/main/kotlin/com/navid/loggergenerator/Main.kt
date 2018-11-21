@@ -18,7 +18,7 @@ fun main(args: Array<String>) {
         val f = File(mappingFile)
         val mappingConfig = loadFromFile(f.toPath())
 
-        generateJavaFile(mappingConfig, packageName)
+        generateJavaFile(mappingConfig, packageName, outputFolder)
     }
 }
 

@@ -1,12 +1,13 @@
 package com.navid.loggergenerator
 
 import com.squareup.javapoet.*
+import java.io.File
 import javax.lang.model.element.Modifier
 
 val saClassName = ClassName.get("net.logstash.logback.argument", "StructuredArguments")
 val saClass = ClassName.get("net.logstash.logback.argument", "StructuredArgument")
 
-fun generateJavaFile(mappingConfig: MappingConfig, packageName: String) {
+fun generateJavaFile(mappingConfig: MappingConfig, packageName: String, outputFolder: String) {
     val genClass = TypeSpec
             .classBuilder("LoggerUtils")
             .addModifiers(Modifier.PUBLIC, Modifier.FINAL)
@@ -23,7 +24,8 @@ fun generateJavaFile(mappingConfig: MappingConfig, packageName: String) {
             .addStaticImport(saClassName, "*")
             .build()
 
-    javaFile.writeTo(System.out)
+
+    javaFile.writeTo(File(outputFolder))
 }
 
 fun camelCase(string: String): String {
