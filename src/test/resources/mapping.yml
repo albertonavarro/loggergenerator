@@ -1,0 +1,19 @@
+version: 1
+mappings:
+  - name: objectId
+    type: java.lang.String
+    description: blablablah
+  - name: status
+    type: java.lang.Number
+    description: blablablah
+  - name: meloinvento
+    type: com.blueliv.Inventao
+    description: blablablah
+sayings:
+  - code: COD_1
+    message: "something went wrong with this other thing"
+    variables:
+        - objectId
+        - status
+    extradata:
+        key: value
