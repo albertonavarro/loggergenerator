@@ -10,7 +10,7 @@ import java.nio.file.Path
 
 data class SayingEntry(val code: String, val message: String, val variables: List<String>, val extradata: Map<String, String>)
 data class MappingEntry(val name: String, val type: String, val description: String,  val of: List<String>? )
-data class MappingConfig(val version: Integer, val mappings: List<MappingEntry>, val sayings: List<SayingEntry>)
+data class MappingConfig(val version: Int, val mappings: List<MappingEntry>, val sayings: List<SayingEntry>)
 
 fun main(args: Array<String>) {
 
