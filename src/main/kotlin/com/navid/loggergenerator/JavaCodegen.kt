@@ -34,6 +34,7 @@ fun camelCase(string: String): String {
 
 fun createKvFunction(entry: MappingEntry): MethodSpec {
     val main = MethodSpec.methodBuilder("kv" + camelCase(entry.name))
+            .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
             .addParameter( ClassName.bestGuess(entry.type).box(), entry.name)
             .returns(saClass)
             .addStatement("return keyValue(\$S,\$L)", entry.name, entry.name)
@@ -47,6 +48,7 @@ fun createListFunction(entry: MappingEntry): MethodSpec {
 
     return MethodSpec
             .methodBuilder("a" + camelCase(entry.name))
+            .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
             .addParameter(iterableType, entry.name)
             .returns(saClass)
             .addStatement("return array(\$S,\$L)", entry.name, entry.name)
@@ -55,6 +57,7 @@ fun createListFunction(entry: MappingEntry): MethodSpec {
 
 fun createVarargFunction(entry: MappingEntry): MethodSpec {
     return MethodSpec.methodBuilder("a" + camelCase(entry.name))
+            .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
             .addParameter(ArrayTypeName.of(ClassName.bestGuess(entry.type).box()), entry.name).varargs()
             .returns(saClass)
             .addStatement("return array(\$S,\$L)", entry.name, entry.name)
