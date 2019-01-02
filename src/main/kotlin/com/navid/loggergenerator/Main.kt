@@ -10,15 +10,15 @@ import java.nio.file.Path
 
 data class SayingEntry(val code: String, val message: String, val variables: List<String>, val extradata: Map<String, String>)
 data class MappingEntry(val name: String, val type: String, val description: String,  val of: List<String>? )
-data class MappingConfig(val version: Int, val mappings: List<MappingEntry>, val sayings: List<SayingEntry>)
+data class MappingConfig(val version: Int, val mappings: List<MappingEntry>, val sentences: List<SayingEntry>)
 
 fun main(args: Array<String>) {
 
     ArgParser(args).parseInto(::Arguments).run {
         val f = File(mappingFile)
         val mappingConfig = loadFromFile(f.toPath())
-
-        generateJavaFile(mappingConfig, packageName, outputFolder)
+        genHtml( mappingConfig, htmlName, htmlOutputFolder)
+        generateJavaFile(mappingConfig, packageName, javaClassName, outputFolder)
     }
 }
 
@@ -31,3 +31,4 @@ fun loadFromFile(path: Path): MappingConfig {
         mapper.readValue(it, MappingConfig::class.java)
     }
 }
+

@@ -7,7 +7,12 @@ class Arguments(parser: ArgParser) {
             help = "Mapping file")
     val packageName by parser.storing("-P", "--package",
             help = "Codegen generated package")
-    val outputFolder by parser.storing("-O", "--output",
-            help = "Output folder")
-
+    val outputFolder by parser.storing("-C", "--codegen-output",
+            help = "Codegen Output folder")
+    val javaClassName by parser.storing("-J", "--class-name",
+            help = "Java class name")
+    val htmlName by parser.storing("-N", "--html-name",
+            help = "Html file name")
+    val htmlOutputFolder by parser.storing("-H", "--html-output",
+            help = "Html Output folder")
 }

@@ -7,9 +7,9 @@ import javax.lang.model.element.Modifier
 val saClassName = ClassName.get("net.logstash.logback.argument", "StructuredArguments")
 val saClass = ClassName.get("net.logstash.logback.argument", "StructuredArgument")
 
-fun generateJavaFile(mappingConfig: MappingConfig, packageName: String, outputFolder: String) {
+fun generateJavaFile(mappingConfig: MappingConfig, packageName: String, className: String, outputFolder: String) {
     val genClass = TypeSpec
-            .classBuilder("LoggerUtils")
+            .classBuilder(className)
             .addModifiers(Modifier.PUBLIC, Modifier.FINAL)
 
     mappingConfig.mappings.forEach{

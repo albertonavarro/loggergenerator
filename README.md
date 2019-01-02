@@ -27,7 +27,13 @@ LoggerGenerator takes few arguments and a description file to generate the utils
 
 --package `package name` => Takes the desired package for the generated code.
 
---output `output folder` => Takes the final desired destination for the code.
+--codegen-output `output folder` => Takes the final desired destination for the code.
+
+--class-name `name` => Logger Utils generated java class name.
+
+--html-name `name` => Logger Utils generated html file name.
+
+--html-output `output folder` => Takes the final desired destination for the html documentation.
 
 ### Log Description File format
 

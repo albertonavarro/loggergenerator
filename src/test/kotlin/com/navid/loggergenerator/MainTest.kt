@@ -12,7 +12,10 @@ class TestSource() {
                 arrayOf(
                         "--input", filePath.path,
                         "--package", "com.example.helloworld",
-                        "--output", "zzz"))
+                        "--codegen-output", "zzz",
+                        "--html-output", "yyy",
+                        "--class-name", "LU",
+                        "--html-name", "T1.html"))
 
         //then
     }

@@ -9,7 +9,7 @@ mappings:
   - name: meloinvento
     type: com.blueliv.Inventao
     description: blablablah
-sayings:
+sentences:
   - code: COD_1
     message: "something went wrong with this other thing"
     variables:
