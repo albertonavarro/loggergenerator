@@ -19,4 +19,16 @@ class TestSource() {
 
         //then
     }
+
+    @test fun emptyArgs() {
+        //given
+        var filePath = TestSource::class.java.getResource("/mapping.yml")
+
+        //when
+        com.navid.loggergenerator.main(
+                arrayOf( "--input", filePath.path
+                        ))
+
+        //then
+    }
 }
