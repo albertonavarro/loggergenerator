@@ -59,7 +59,7 @@ fun genHtml(mappingConfig: MappingConfig, htmlFileName: String, outputFolder: St
                                     }
                                     td {
                                         ul {
-                                            for (extradata in saying.extradata) {
+                                            for (extradata in saying.extradata!!) {
                                                 li { +(extradata.key + "=" + extradata.value)}
                                             }
                                         }

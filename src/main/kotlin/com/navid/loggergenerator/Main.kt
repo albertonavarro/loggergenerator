@@ -8,9 +8,9 @@ import java.io.File
 import java.nio.file.Files
 import java.nio.file.Path
 
-data class SayingEntry(val code: String, val message: String, val variables: List<String>, val extradata: Map<String, String>)
+data class SentenceEntry(val code: String, val message: String, val defaultLevel: String, val variables: List<String> = emptyList(), val extradata: Map<String, String>?)
 data class MappingEntry(val name: String, val type: String, val description: String,  val of: List<String>? )
-data class MappingConfig(val version: Int, val mappings: List<MappingEntry>, val sentences: List<SayingEntry>)
+data class MappingConfig(val version: Int, val mappings: List<MappingEntry>, val sentences: List<SentenceEntry> = emptyList())
 
 fun main(args: Array<String>) {
 
@@ -18,7 +18,7 @@ fun main(args: Array<String>) {
         val f = File(mappingFile)
         val mappingConfig = loadFromFile(f.toPath())
         genHtml( mappingConfig, htmlName, htmlOutputFolder)
-        generateJavaFile(mappingConfig, packageName, javaClassName, outputFolder)
+        generateJavaFile(mappingConfig, packageName, javaClassName, outputFolder, sentenceNamingStrategy, JavaCompatibility.JAVA8)
     }
 }
 
