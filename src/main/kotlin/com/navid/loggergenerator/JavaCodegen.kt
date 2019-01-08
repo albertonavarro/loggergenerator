@@ -4,6 +4,10 @@ import com.squareup.javapoet.*
 import java.io.File
 import java.io.ObjectInput
 import javax.lang.model.element.Modifier
+import com.squareup.javapoet.MethodSpec.methodBuilder
+import javax.xml.stream.events.XMLEvent
+
+
 
 val saClassName = ClassName.get("net.logstash.logback.argument", "StructuredArguments")
 val saClass = ClassName.get("net.logstash.logback.argument", "StructuredArgument")
@@ -23,11 +27,6 @@ fun generateJavaFile(mappingConfig: MappingConfig,
 
     validateMappingConfig(mappingConfig)
 
-    val sentenceCreationMethod : NamingStrategy =
-            if(namingStrategy == SentenceNamingStrategy.BY_CODE )
-                {s, c -> createSentencesByCode(s, c)}
-            else
-                {s, c -> createSentencesBySentence(s, c) }
 
     if (javaCompat.ordinal > JavaCompatibility.JAVA7.ordinal) {
         genClass.addType(TypeSpec.interfaceBuilder("MonoConsumer")
@@ -75,14 +74,27 @@ fun generateJavaFile(mappingConfig: MappingConfig,
     }
 
     mappingConfig.sentences.forEach {
-        genClass.addMethod(sentenceCreationMethod(it, mappingConfig))
+        if (javaCompat.ordinal > JavaCompatibility.JAVA7.ordinal) {
+            if(namingStrategy == SentenceNamingStrategy.BY_CODE ) {
+                genClass.addMethod(createSentencesByCodeConsumer(it, mappingConfig))
+                genClass.addMethod(createSentencesByCode(it, mappingConfig))
+            } else {
+                genClass.addMethod(createSentencesBySentence(it, mappingConfig))
+            }
+        } else {
+            if(namingStrategy == SentenceNamingStrategy.BY_CODE ) {
+                genClass.addMethod(createSentencesByCode(it, mappingConfig))
+                genClass.addMethod(createSentencesByCodeAndLevel(it, mappingConfig))
+            } else {
+                genClass.addMethod(createSentencesBySentence(it, mappingConfig))
+            }
+        }
     }
 
     val javaFile = JavaFile
             .builder(packageName, genClass.build())
             .addStaticImport(saClassName, "*")
             .build()
-
 
     javaFile.writeTo(File(outputFolder))
 }
@@ -133,7 +145,7 @@ fun createSentencesByCode(entry: SentenceEntry, config: MappingConfig): MethodSp
 
     builder.addParameter(ClassName.bestGuess("org.slf4j.Logger").box(), "logger")
     val paramsArray : Array<Object> = Array(entry.variables.size) { i -> entry.variables[i] as Object}
-    val sb1 : StringBuilder = StringBuilder("logger.info(\"").append(entry.message)
+    val sb1 : StringBuilder = StringBuilder("logger." + entry.defaultLevel + "(\"").append(entry.message)
 
     entry.variables.forEach{v ->
         val mapped = config.mappings.filter { m -> m.name.equals(v) }.first()
@@ -144,6 +156,75 @@ fun createSentencesByCode(entry: SentenceEntry, config: MappingConfig): MethodSp
     sb1.append("\"").append(createDollarString(entry)).append(")")
 
     builder.addStatement(sb1.toString(), *paramsArray)
+
+    return builder.build();
+}
+
+fun createSentencesByCodeAndLevel(entry: SentenceEntry, config: MappingConfig): MethodSpec {
+    val builder = MethodSpec.methodBuilder("audit" + camelCase(entry.code))
+            .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
+
+    builder.addParameter(ClassName.bestGuess("org.slf4j.Logger").box(), "logger")
+    builder.addParameter(ClassName.bestGuess("org.slf4j.event.Level").box(), "level")
+
+    val paramsArray : Array<Object> = Array(entry.variables.size) { i -> entry.variables[i] as Object}
+    val sb1 : StringBuilder = StringBuilder("(\"").append(entry.message)
+
+    entry.variables.forEach{v ->
+        val mapped = config.mappings.filter { m -> m.name.equals(v) }.first()
+        builder.addParameter(ClassName.bestGuess(mapped.type).box(), mapped.name)
+        sb1.append(" {}")
+    }
+
+    sb1.append("\"").append(createDollarString(entry)).append(")")
+
+
+    builder.beginControlFlow("switch(level)")
+    builder.addCode("case ERROR:\n")
+    builder.addStatement("logger.error" + sb1.toString(), *paramsArray)
+    builder.addStatement("break")
+    builder.addCode("case WARN:\n")
+    builder.addStatement("logger.warn" + sb1.toString(), *paramsArray)
+    builder.addStatement("break")
+    builder.addCode("case INFO:\n")
+    builder.addStatement("logger.info" + sb1.toString(), *paramsArray)
+    builder.addStatement("break")
+    builder.addCode("case DEBUG:\n")
+    builder.addStatement("logger.debug" + sb1.toString(), *paramsArray)
+    builder.addStatement("break")
+    builder.addCode("case TRACE:\n")
+    builder.addStatement("logger.trace" + sb1.toString(), *paramsArray)
+    builder.addStatement("break")
+    builder.endControlFlow()
+
+
+    return builder.build();
+}
+
+fun createSentencesByCodeConsumer(entry: SentenceEntry, config: MappingConfig): MethodSpec {
+    val builder = MethodSpec.methodBuilder("audit" + camelCase(entry.code))
+            .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
+
+    when(entry.variables.size) {
+        0 ->     builder.addParameter(ClassName.bestGuess("MonoConsumer").box(), "logger")
+        1 ->     builder.addParameter(ClassName.bestGuess("BiConsumer").box(), "logger")
+        2 ->     builder.addParameter(ClassName.bestGuess("TriConsumer").box(), "logger")
+        else ->     builder.addParameter(ClassName.bestGuess("ManyConsumer").box(), "logger")
+    }
+
+    val paramsArray : Array<Object> = Array(entry.variables.size) { i -> entry.variables[i] as Object}
+    val sb1 : StringBuilder = StringBuilder("logger.accept(\"").append(entry.message)
+
+    entry.variables.forEach{v ->
+        val mapped = config.mappings.filter { m -> m.name.equals(v) }.first()
+        builder.addParameter(ClassName.bestGuess(mapped.type).box(), mapped.name)
+        sb1.append(" {}")
+    }
+
+    sb1.append("\"").append(createDollarString(entry)).append(")")
+
+    builder.addStatement(sb1.toString(), *paramsArray)
+
 
     return builder.build();
 }

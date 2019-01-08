@@ -15,7 +15,9 @@ class TestSource() {
                         "--codegen-output", "zzz",
                         "--html-output", "yyy",
                         "--class-name", "LU",
-                        "--html-name", "T1.html"))
+                        "--html-name", "T1.html",
+                        "--compat-1.7"
+                ))
 
         //then
     }

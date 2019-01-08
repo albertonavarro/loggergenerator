@@ -18,7 +18,7 @@ fun main(args: Array<String>) {
         val f = File(mappingFile)
         val mappingConfig = loadFromFile(f.toPath())
         genHtml( mappingConfig, htmlName, htmlOutputFolder)
-        generateJavaFile(mappingConfig, packageName, javaClassName, outputFolder, sentenceNamingStrategy, JavaCompatibility.JAVA8)
+        generateJavaFile(mappingConfig, packageName, javaClassName, outputFolder, sentenceNamingStrategy, javaCompatibility)
     }
 }
 

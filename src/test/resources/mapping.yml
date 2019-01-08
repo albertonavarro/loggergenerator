@@ -12,13 +12,13 @@ mappings:
 sentences:
   - code: COD_1
     message: "something went wrong with this other thing"
-    defaultLevel: WARN
+    defaultLevel: warn
     variables:
         - objectId
         - status
     extradata: {}
   - code: COD_2
     message: "something went wrong with this other thing"
-    defaultLevel: INFO
+    defaultLevel: info
     variables: []
     extradata: {}
