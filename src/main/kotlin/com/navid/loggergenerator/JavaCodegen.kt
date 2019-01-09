@@ -2,11 +2,8 @@ package com.navid.loggergenerator
 
 import com.squareup.javapoet.*
 import java.io.File
-import java.io.ObjectInput
 import javax.lang.model.element.Modifier
 import com.squareup.javapoet.MethodSpec.methodBuilder
-import javax.xml.stream.events.XMLEvent
-
 
 
 val saClassName = ClassName.get("net.logstash.logback.argument", "StructuredArguments")
@@ -29,41 +26,7 @@ fun generateJavaFile(mappingConfig: MappingConfig,
 
 
     if (javaCompat.ordinal > JavaCompatibility.JAVA7.ordinal) {
-        genClass.addType(TypeSpec.interfaceBuilder("MonoConsumer")
-                .addMethod(MethodSpec.methodBuilder("accept")
-                        .addParameter( ClassName.bestGuess("String").box(), "var1")
-                        .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
-                        .build())
-                .addModifiers(Modifier.PUBLIC)
-                .build())
-
-        genClass.addType(TypeSpec.interfaceBuilder("BiConsumer")
-                .addMethod(MethodSpec.methodBuilder("accept")
-                        .addParameter( ClassName.bestGuess("String").box(), "var1")
-                        .addParameter( ClassName.bestGuess("Object").box(), "var2")
-                        .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
-                        .build())
-                .addModifiers(Modifier.PUBLIC)
-                .build())
-
-        genClass.addType(TypeSpec.interfaceBuilder("TriConsumer")
-                .addMethod(MethodSpec.methodBuilder("accept")
-                        .addParameter( ClassName.bestGuess("String").box(), "var1")
-                        .addParameter( ClassName.bestGuess("Object").box(), "var2")
-                        .addParameter( ClassName.bestGuess("Object").box(), "var3")
-                        .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
-                        .build())
-                .addModifiers(Modifier.PUBLIC)
-                .build())
-
-        genClass.addType(TypeSpec.interfaceBuilder("ManyConsumer")
-                .addMethod(MethodSpec.methodBuilder("accept")
-                        .addParameter( ClassName.bestGuess("String").box(), "var1")
-                        .addParameter(ArrayTypeName.of(ClassName.bestGuess("Object").box()), "var2").varargs()
-                        .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
-                        .build())
-                .addModifiers(Modifier.PUBLIC)
-                .build())
+        generateConsumersJDK8(genClass)
     }
 
 
@@ -76,15 +39,16 @@ fun generateJavaFile(mappingConfig: MappingConfig,
     mappingConfig.sentences.forEach {
         if (javaCompat.ordinal > JavaCompatibility.JAVA7.ordinal) {
             if(namingStrategy == SentenceNamingStrategy.BY_CODE ) {
-                genClass.addMethod(createSentencesByCodeConsumer(it, mappingConfig))
                 genClass.addMethod(createSentencesByCode(it, mappingConfig))
+                genClass.addMethod(createSentencesByCodeJDK8(it, mappingConfig))
+
             } else {
                 genClass.addMethod(createSentencesBySentence(it, mappingConfig))
             }
         } else {
             if(namingStrategy == SentenceNamingStrategy.BY_CODE ) {
                 genClass.addMethod(createSentencesByCode(it, mappingConfig))
-                genClass.addMethod(createSentencesByCodeAndLevel(it, mappingConfig))
+                genClass.addMethod(createSentencesByCodeJDK7(it, mappingConfig))
             } else {
                 genClass.addMethod(createSentencesBySentence(it, mappingConfig))
             }
@@ -99,6 +63,44 @@ fun generateJavaFile(mappingConfig: MappingConfig,
     javaFile.writeTo(File(outputFolder))
 }
 
+private fun generateConsumersJDK8(genClass: TypeSpec.Builder) {
+    genClass.addType(TypeSpec.interfaceBuilder("MonoConsumer")
+            .addMethod(methodBuilder("accept")
+                    .addParameter(ClassName.bestGuess("String").box(), "var1")
+                    .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
+                    .build())
+            .addModifiers(Modifier.PUBLIC)
+            .build())
+
+    genClass.addType(TypeSpec.interfaceBuilder("BiConsumer")
+            .addMethod(methodBuilder("accept")
+                    .addParameter(ClassName.bestGuess("String").box(), "var1")
+                    .addParameter(ClassName.bestGuess("Object").box(), "var2")
+                    .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
+                    .build())
+            .addModifiers(Modifier.PUBLIC)
+            .build())
+
+    genClass.addType(TypeSpec.interfaceBuilder("TriConsumer")
+            .addMethod(methodBuilder("accept")
+                    .addParameter(ClassName.bestGuess("String").box(), "var1")
+                    .addParameter(ClassName.bestGuess("Object").box(), "var2")
+                    .addParameter(ClassName.bestGuess("Object").box(), "var3")
+                    .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
+                    .build())
+            .addModifiers(Modifier.PUBLIC)
+            .build())
+
+    genClass.addType(TypeSpec.interfaceBuilder("ManyConsumer")
+            .addMethod(methodBuilder("accept")
+                    .addParameter(ClassName.bestGuess("String").box(), "var1")
+                    .addParameter(ArrayTypeName.of(ClassName.bestGuess("Object").box()), "var2").varargs()
+                    .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
+                    .build())
+            .addModifiers(Modifier.PUBLIC)
+            .build())
+}
+
 fun validateMappingConfig(mappingConfig: MappingConfig) {
 //logger is a reserved word
 }
@@ -108,7 +110,7 @@ fun camelCase(string: String): String {
 }
 
 fun createKvFunction(entry: MappingEntry): MethodSpec {
-    val main = MethodSpec.methodBuilder("kv" + camelCase(entry.name))
+    val main = MethodSpec.methodBuilder(generateKvFunctionName(entry.name))
             .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
             .addParameter( ClassName.bestGuess(entry.type).box(), entry.name)
             .returns(saClass)
@@ -117,6 +119,8 @@ fun createKvFunction(entry: MappingEntry): MethodSpec {
 
     return main
 }
+
+private fun generateKvFunctionName(variableName: String) = "kv" + camelCase(variableName)
 
 fun createListFunction(entry: MappingEntry): MethodSpec {
     val iterableType = ParameterizedTypeName.get(ClassName.get(Iterable::class.java), ClassName.bestGuess(entry.type).box())
@@ -144,30 +148,29 @@ fun createSentencesByCode(entry: SentenceEntry, config: MappingConfig): MethodSp
             .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
 
     builder.addParameter(ClassName.bestGuess("org.slf4j.Logger").box(), "logger")
-    val paramsArray : Array<Object> = Array(entry.variables.size) { i -> entry.variables[i] as Object}
+
     val sb1 : StringBuilder = StringBuilder("logger." + entry.defaultLevel + "(\"").append(entry.message)
 
     entry.variables.forEach{v ->
-        val mapped = config.mappings.filter { m -> m.name.equals(v) }.first()
+        val mapped = config.mappings.filter { m -> m.name == v }.first()
         builder.addParameter(ClassName.bestGuess(mapped.type).box(), mapped.name)
         sb1.append(" {}")
     }
 
-    sb1.append("\"").append(createDollarString(entry)).append(")")
+    sb1.append("\"").append(createFunctionString(entry)).append(")")
 
-    builder.addStatement(sb1.toString(), *paramsArray)
+    builder.addStatement(sb1.toString())
 
-    return builder.build();
+    return builder.build()
 }
 
-fun createSentencesByCodeAndLevel(entry: SentenceEntry, config: MappingConfig): MethodSpec {
+fun createSentencesByCodeJDK7(entry: SentenceEntry, config: MappingConfig): MethodSpec {
     val builder = MethodSpec.methodBuilder("audit" + camelCase(entry.code))
             .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
 
     builder.addParameter(ClassName.bestGuess("org.slf4j.Logger").box(), "logger")
     builder.addParameter(ClassName.bestGuess("org.slf4j.event.Level").box(), "level")
 
-    val paramsArray : Array<Object> = Array(entry.variables.size) { i -> entry.variables[i] as Object}
     val sb1 : StringBuilder = StringBuilder("(\"").append(entry.message)
 
     entry.variables.forEach{v ->
@@ -176,24 +179,24 @@ fun createSentencesByCodeAndLevel(entry: SentenceEntry, config: MappingConfig): 
         sb1.append(" {}")
     }
 
-    sb1.append("\"").append(createDollarString(entry)).append(")")
+    sb1.append("\"").append(createFunctionString(entry)).append(")")
 
 
     builder.beginControlFlow("switch(level)")
     builder.addCode("case ERROR:\n")
-    builder.addStatement("logger.error" + sb1.toString(), *paramsArray)
+    builder.addStatement("logger.error" + sb1.toString())
     builder.addStatement("break")
     builder.addCode("case WARN:\n")
-    builder.addStatement("logger.warn" + sb1.toString(), *paramsArray)
+    builder.addStatement("logger.warn" + sb1.toString())
     builder.addStatement("break")
     builder.addCode("case INFO:\n")
-    builder.addStatement("logger.info" + sb1.toString(), *paramsArray)
+    builder.addStatement("logger.info" + sb1.toString())
     builder.addStatement("break")
     builder.addCode("case DEBUG:\n")
-    builder.addStatement("logger.debug" + sb1.toString(), *paramsArray)
+    builder.addStatement("logger.debug" + sb1.toString())
     builder.addStatement("break")
     builder.addCode("case TRACE:\n")
-    builder.addStatement("logger.trace" + sb1.toString(), *paramsArray)
+    builder.addStatement("logger.trace" + sb1.toString())
     builder.addStatement("break")
     builder.endControlFlow()
 
@@ -201,7 +204,7 @@ fun createSentencesByCodeAndLevel(entry: SentenceEntry, config: MappingConfig): 
     return builder.build();
 }
 
-fun createSentencesByCodeConsumer(entry: SentenceEntry, config: MappingConfig): MethodSpec {
+fun createSentencesByCodeJDK8(entry: SentenceEntry, config: MappingConfig): MethodSpec {
     val builder = MethodSpec.methodBuilder("audit" + camelCase(entry.code))
             .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
 
@@ -212,7 +215,6 @@ fun createSentencesByCodeConsumer(entry: SentenceEntry, config: MappingConfig): 
         else ->     builder.addParameter(ClassName.bestGuess("ManyConsumer").box(), "logger")
     }
 
-    val paramsArray : Array<Object> = Array(entry.variables.size) { i -> entry.variables[i] as Object}
     val sb1 : StringBuilder = StringBuilder("logger.accept(\"").append(entry.message)
 
     entry.variables.forEach{v ->
@@ -221,10 +223,9 @@ fun createSentencesByCodeConsumer(entry: SentenceEntry, config: MappingConfig): 
         sb1.append(" {}")
     }
 
-    sb1.append("\"").append(createDollarString(entry)).append(")")
+    sb1.append("\"").append(createFunctionString(entry)).append(")")
 
-    builder.addStatement(sb1.toString(), *paramsArray)
-
+    builder.addStatement(sb1.toString())
 
     return builder.build();
 }
@@ -260,6 +261,15 @@ fun createDollarString(entry: SentenceEntry): String {
         ""
     } else {
         entry.variables.joinToString(",", prefix = ",")
+    }
+
+}
+
+fun createFunctionString(entry: SentenceEntry): String {
+    return if(entry.variables.isEmpty()) {
+        ""
+    } else {
+        entry.variables.map { s -> generateKvFunctionName(s) + "(" + s + ")" }.joinToString(",", prefix = ",")
     }
 
 }
