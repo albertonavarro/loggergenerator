@@ -4,6 +4,7 @@ import com.squareup.javapoet.*
 import java.io.File
 import javax.lang.model.element.Modifier
 import com.squareup.javapoet.MethodSpec.methodBuilder
+import javax.lang.model.type.PrimitiveType
 
 
 val saClassName = ClassName.get("net.logstash.logback.argument", "StructuredArguments")
@@ -66,7 +67,7 @@ fun generateJavaFile(mappingConfig: MappingConfig,
 private fun generateConsumersJDK8(genClass: TypeSpec.Builder) {
     genClass.addType(TypeSpec.interfaceBuilder("MonoConsumer")
             .addMethod(methodBuilder("accept")
-                    .addParameter(ClassName.bestGuess("String").box(), "var1")
+                    .addParameter(getTypeName("String"), "var1")
                     .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
                     .build())
             .addModifiers(Modifier.PUBLIC)
@@ -74,8 +75,8 @@ private fun generateConsumersJDK8(genClass: TypeSpec.Builder) {
 
     genClass.addType(TypeSpec.interfaceBuilder("BiConsumer")
             .addMethod(methodBuilder("accept")
-                    .addParameter(ClassName.bestGuess("String").box(), "var1")
-                    .addParameter(ClassName.bestGuess("Object").box(), "var2")
+                    .addParameter(getTypeName("String"), "var1")
+                    .addParameter(getTypeName("Object"), "var2")
                     .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
                     .build())
             .addModifiers(Modifier.PUBLIC)
@@ -83,9 +84,9 @@ private fun generateConsumersJDK8(genClass: TypeSpec.Builder) {
 
     genClass.addType(TypeSpec.interfaceBuilder("TriConsumer")
             .addMethod(methodBuilder("accept")
-                    .addParameter(ClassName.bestGuess("String").box(), "var1")
-                    .addParameter(ClassName.bestGuess("Object").box(), "var2")
-                    .addParameter(ClassName.bestGuess("Object").box(), "var3")
+                    .addParameter(getTypeName("String"), "var1")
+                    .addParameter(getTypeName("Object"), "var2")
+                    .addParameter(getTypeName("Object"), "var3")
                     .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
                     .build())
             .addModifiers(Modifier.PUBLIC)
@@ -93,8 +94,8 @@ private fun generateConsumersJDK8(genClass: TypeSpec.Builder) {
 
     genClass.addType(TypeSpec.interfaceBuilder("ManyConsumer")
             .addMethod(methodBuilder("accept")
-                    .addParameter(ClassName.bestGuess("String").box(), "var1")
-                    .addParameter(ArrayTypeName.of(ClassName.bestGuess("Object").box()), "var2").varargs()
+                    .addParameter(getTypeName("String"), "var1")
+                    .addParameter(ArrayTypeName.of(getTypeName("Object")), "var2").varargs()
                     .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
                     .build())
             .addModifiers(Modifier.PUBLIC)
@@ -108,11 +109,25 @@ fun validateMappingConfig(mappingConfig: MappingConfig) {
 fun camelCase(string: String): String {
     return string.substring(0,1).toUpperCase() + string.substring(1)
 }
+//boolean , byte , char , short , int , long , float and double
+fun getTypeName(name : String) : TypeName {
+    return when(name) {
+        "boolean" -> TypeName.BOOLEAN
+        "byte" -> TypeName.BYTE
+        "char" -> TypeName.CHAR
+        "short" -> TypeName.SHORT
+        "int" -> TypeName.INT
+        "long" -> TypeName.LONG
+        "float" -> TypeName.FLOAT
+        "double" -> TypeName.DOUBLE
+        else ->  ClassName.bestGuess(name).box()
+    }
+}
 
 fun createKvFunction(entry: MappingEntry): MethodSpec {
     val main = MethodSpec.methodBuilder(generateKvFunctionName(entry.name))
             .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
-            .addParameter( ClassName.bestGuess(entry.type).box(), entry.name)
+            .addParameter(getTypeName(entry.type) , entry.name)
             .returns(saClass)
             .addStatement("return keyValue(\$S,\$L)", entry.name, entry.name)
             .build()
@@ -123,7 +138,7 @@ fun createKvFunction(entry: MappingEntry): MethodSpec {
 private fun generateKvFunctionName(variableName: String) = "kv" + camelCase(variableName)
 
 fun createListFunction(entry: MappingEntry): MethodSpec {
-    val iterableType = ParameterizedTypeName.get(ClassName.get(Iterable::class.java), ClassName.bestGuess(entry.type).box())
+    val iterableType = ParameterizedTypeName.get(ClassName.get(Iterable::class.java), getTypeName(entry.type).box())
 
     return MethodSpec
             .methodBuilder("a" + camelCase(entry.name))
@@ -137,7 +152,7 @@ fun createListFunction(entry: MappingEntry): MethodSpec {
 fun createVarargFunction(entry: MappingEntry): MethodSpec {
     return MethodSpec.methodBuilder("a" + camelCase(entry.name))
             .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
-            .addParameter(ArrayTypeName.of(ClassName.bestGuess(entry.type).box()), entry.name).varargs()
+            .addParameter(ArrayTypeName.of(getTypeName(entry.type)), entry.name).varargs()
             .returns(saClass)
             .addStatement("return array(\$S,\$L)", entry.name, entry.name)
             .build()
@@ -147,13 +162,13 @@ fun createSentencesByCode(entry: SentenceEntry, config: MappingConfig): MethodSp
     val builder = MethodSpec.methodBuilder("audit" + camelCase(entry.code))
             .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
 
-    builder.addParameter(ClassName.bestGuess("org.slf4j.Logger").box(), "logger")
+    builder.addParameter(getTypeName("org.slf4j.Logger"), "logger")
 
     val sb1 : StringBuilder = StringBuilder("logger." + entry.defaultLevel + "(\"").append(entry.message)
 
     entry.variables.forEach{v ->
         val mapped = config.mappings.filter { m -> m.name == v }.first()
-        builder.addParameter(ClassName.bestGuess(mapped.type).box(), mapped.name)
+        builder.addParameter(getTypeName(mapped.type), mapped.name)
         sb1.append(" {}")
     }
 
@@ -168,14 +183,14 @@ fun createSentencesByCodeJDK7(entry: SentenceEntry, config: MappingConfig): Meth
     val builder = MethodSpec.methodBuilder("audit" + camelCase(entry.code))
             .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
 
-    builder.addParameter(ClassName.bestGuess("org.slf4j.Logger").box(), "logger")
-    builder.addParameter(ClassName.bestGuess("org.slf4j.event.Level").box(), "level")
+    builder.addParameter(getTypeName("org.slf4j.Logger"), "logger")
+    builder.addParameter(getTypeName("org.slf4j.event.Level"), "level")
 
     val sb1 : StringBuilder = StringBuilder("(\"").append(entry.message)
 
     entry.variables.forEach{v ->
         val mapped = config.mappings.filter { m -> m.name.equals(v) }.first()
-        builder.addParameter(ClassName.bestGuess(mapped.type).box(), mapped.name)
+        builder.addParameter(getTypeName(mapped.type), mapped.name)
         sb1.append(" {}")
     }
 
@@ -209,17 +224,17 @@ fun createSentencesByCodeJDK8(entry: SentenceEntry, config: MappingConfig): Meth
             .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
 
     when(entry.variables.size) {
-        0 ->     builder.addParameter(ClassName.bestGuess("MonoConsumer").box(), "logger")
-        1 ->     builder.addParameter(ClassName.bestGuess("BiConsumer").box(), "logger")
-        2 ->     builder.addParameter(ClassName.bestGuess("TriConsumer").box(), "logger")
-        else ->     builder.addParameter(ClassName.bestGuess("ManyConsumer").box(), "logger")
+        0 ->     builder.addParameter(getTypeName("MonoConsumer"), "logger")
+        1 ->     builder.addParameter(getTypeName("BiConsumer"), "logger")
+        2 ->     builder.addParameter(getTypeName("TriConsumer"), "logger")
+        else ->     builder.addParameter(getTypeName("ManyConsumer"), "logger")
     }
 
     val sb1 : StringBuilder = StringBuilder("logger.accept(\"").append(entry.message)
 
     entry.variables.forEach{v ->
         val mapped = config.mappings.filter { m -> m.name.equals(v) }.first()
-        builder.addParameter(ClassName.bestGuess(mapped.type).box(), mapped.name)
+        builder.addParameter(getTypeName(mapped.type), mapped.name)
         sb1.append(" {}")
     }
 
@@ -236,13 +251,13 @@ fun createSentencesByCodeWithLevel(entry: SentenceEntry, config: MappingConfig):
     val builder = MethodSpec.methodBuilder("audit" + camelCase(entry.code))
             .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
 
-    builder.addParameter(ClassName.bestGuess("org.slf4j.Logger").box(), "logger")
+    builder.addParameter(getTypeName("org.slf4j.Logger"), "logger")
     val paramsArray : Array<Object> = Array(entry.variables.size) { i -> entry.variables[i] as Object}
     val sb1 : StringBuilder = StringBuilder("logger.info(\"").append(entry.message)
 
     entry.variables.forEach{v ->
         val mapped = config.mappings.filter { m -> m.name.equals(v) }.first()
-        builder.addParameter(ClassName.bestGuess(mapped.type).box(), mapped.name)
+        builder.addParameter(getTypeName(mapped.type), mapped.name)
         sb1.append(" {}")
     }
 
