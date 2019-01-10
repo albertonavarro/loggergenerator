@@ -58,7 +58,7 @@ fun generateJavaFile(mappingConfig: MappingConfig,
 
     val javaFile = JavaFile
             .builder(packageName, genClass.build())
-            .addStaticImport(saClassName, "kv")
+            .addStaticImport(saClassName, "keyValue")
             .build()
 
     javaFile.writeTo(File(outputFolder))
