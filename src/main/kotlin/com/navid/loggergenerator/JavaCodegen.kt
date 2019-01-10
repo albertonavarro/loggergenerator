@@ -58,7 +58,7 @@ fun generateJavaFile(mappingConfig: MappingConfig,
 
     val javaFile = JavaFile
             .builder(packageName, genClass.build())
-            .addStaticImport(saClassName, "*")
+            .addStaticImport(saClassName, "kv")
             .build()
 
     javaFile.writeTo(File(outputFolder))
@@ -145,7 +145,7 @@ fun createListFunction(entry: MappingEntry): MethodSpec {
             .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
             .addParameter(iterableType, entry.name)
             .returns(saClass)
-            .addStatement("return array(\$S,\$L)", entry.name, entry.name)
+            .addStatement("return new ObjectAppendingMarker(\$S,\$L)", entry.name, entry.name)
             .build()
 }
 
@@ -154,7 +154,7 @@ fun createVarargFunction(entry: MappingEntry): MethodSpec {
             .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
             .addParameter(ArrayTypeName.of(getTypeName(entry.type)), entry.name).varargs()
             .returns(saClass)
-            .addStatement("return array(\$S,\$L)", entry.name, entry.name)
+            .addStatement("return new ObjectAppendingMarker(\$S,\$L)", entry.name, entry.name)
             .build()
 }
 
