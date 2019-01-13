@@ -14,9 +14,9 @@ enum class JavaCompatibility {
 class Arguments(parser: ArgParser) {
     val mappingFile by parser.storing("-I", "--input",
             help = "Mapping file")
-    val packageName by parser.storing("-P", "--package",
+    val packageName by parser.storing("-P", "--package-name",
             help = "Codegen generated package").default("com.example")
-    val outputFolder by parser.storing("-C", "--codegen-output",
+    val codegenOutput by parser.storing("-C", "--codegen-output",
             help = "Codegen Output folder").default(".")
     val javaClassName by parser.storing("-J", "--class-name",
             help = "Java class name").default("LoggerUtils")
