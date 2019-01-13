@@ -19,7 +19,7 @@ fun main(args: Array<String>) {
 
 
         genHtml( mappingConfig, htmlName, htmlOutputFolder)
-        generateJavaFile(mappingConfig, packageName, javaClassName, outputFolder, sentenceNamingStrategy, javaCompatibility)
+        generateJavaFile(mappingConfig, packageName, javaClassName, codegenOutput, sentenceNamingStrategy, javaCompatibility)
     }
 }
 

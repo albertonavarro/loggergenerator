@@ -11,7 +11,7 @@ class TestSource() {
         com.navid.loggergenerator.main(
                 arrayOf(
                         "--input", filePath.path,
-                        "--package", "com.example.helloworld",
+                        "--package-name", "com.example.helloworld",
                         "--codegen-output", "build/test/codegen7",
                         "--html-output", "build/test/html7",
                         "--class-name", "LoggerUtils",
@@ -30,7 +30,7 @@ class TestSource() {
         com.navid.loggergenerator.main(
                 arrayOf(
                         "--input", filePath.path,
-                        "--package", "com.example.helloworld",
+                        "--package-name", "com.example.helloworld",
                         "--codegen-output", "build/test/codegen8",
                         "--html-output", "build/test/html8",
                         "--class-name", "LoggerUtils",
