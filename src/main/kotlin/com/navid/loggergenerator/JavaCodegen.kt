@@ -1,10 +1,12 @@
 package com.navid.loggergenerator
 
+import com.navid.loggergenerator.config.MappingConfig
+import com.navid.loggergenerator.config.MappingEntry
+import com.navid.loggergenerator.config.SentenceEntry
 import com.squareup.javapoet.*
 import java.io.File
 import javax.lang.model.element.Modifier
 import com.squareup.javapoet.MethodSpec.methodBuilder
-import javax.lang.model.type.PrimitiveType
 
 
 val saClassName = ClassName.get("net.logstash.logback.argument", "StructuredArguments")
@@ -23,21 +25,18 @@ fun generateJavaFile(mappingConfig: MappingConfig,
             .classBuilder(className)
             .addModifiers(Modifier.PUBLIC, Modifier.FINAL)
 
-    validateMappingConfig(mappingConfig)
-
-
     if (javaCompat.ordinal > JavaCompatibility.JAVA7.ordinal) {
         generateConsumersJDK8(genClass)
     }
 
 
-    mappingConfig.mappings.forEach{
+    mappingConfig.getMappings().forEach{
         genClass.addMethod(createKvFunction(it))
         genClass.addMethod(createListFunction(it))
         genClass.addMethod(createVarargFunction(it))
     }
 
-    mappingConfig.sentences.forEach {
+    mappingConfig.getSentences().forEach {
         if (javaCompat.ordinal > JavaCompatibility.JAVA7.ordinal) {
             if(namingStrategy == SentenceNamingStrategy.BY_CODE ) {
                 genClass.addMethod(createSentencesByCode(it, mappingConfig))
@@ -125,11 +124,11 @@ fun getTypeName(name : String) : TypeName {
 }
 
 fun createKvFunction(entry: MappingEntry): MethodSpec {
-    val main = MethodSpec.methodBuilder(generateKvFunctionName(entry.name))
+    val main = MethodSpec.methodBuilder(generateKvFunctionName(entry.getName()!!))
             .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
-            .addParameter(getTypeName(entry.type) , entry.name)
+            .addParameter(getTypeName(entry.getType()!!) , entry.getName())
             .returns(saClass)
-            .addStatement("return keyValue(\$S,\$L)", entry.name, entry.name)
+            .addStatement("return keyValue(\$S,\$L)", entry.getName(), entry.getName())
             .build()
 
     return main
@@ -138,37 +137,37 @@ fun createKvFunction(entry: MappingEntry): MethodSpec {
 private fun generateKvFunctionName(variableName: String) = "kv" + camelCase(variableName)
 
 fun createListFunction(entry: MappingEntry): MethodSpec {
-    val iterableType = ParameterizedTypeName.get(ClassName.get(Iterable::class.java), getTypeName(entry.type).box())
+    val iterableType = ParameterizedTypeName.get(ClassName.get(Iterable::class.java), getTypeName(entry.getType()!!).box())
 
     return MethodSpec
-            .methodBuilder("a" + camelCase(entry.name))
+            .methodBuilder("a" + camelCase(entry.getName()!!))
             .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
-            .addParameter(iterableType, entry.name)
+            .addParameter(iterableType, entry.getName())
             .returns(saClass)
-            .addStatement("return new net.logstash.logback.marker.ObjectAppendingMarker(\$S,\$L)", entry.name, entry.name)
+            .addStatement("return new net.logstash.logback.marker.ObjectAppendingMarker(\$S,\$L)", entry.getName(), entry.getName())
             .build()
 }
 
 fun createVarargFunction(entry: MappingEntry): MethodSpec {
-    return MethodSpec.methodBuilder("a" + camelCase(entry.name))
+    return MethodSpec.methodBuilder("a" + camelCase(entry.getName()!!))
             .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
-            .addParameter(ArrayTypeName.of(getTypeName(entry.type)), entry.name).varargs()
+            .addParameter(ArrayTypeName.of(getTypeName(entry.getType()!!)), entry.getName()).varargs()
             .returns(saClass)
-            .addStatement("return new net.logstash.logback.marker.ObjectAppendingMarker(\$S,\$L)", entry.name, entry.name)
+            .addStatement("return new net.logstash.logback.marker.ObjectAppendingMarker(\$S,\$L)", entry.getName(), entry.getName())
             .build()
 }
 
 fun createSentencesByCode(entry: SentenceEntry, config: MappingConfig): MethodSpec {
-    val builder = MethodSpec.methodBuilder("audit" + camelCase(entry.code))
+    val builder = MethodSpec.methodBuilder("audit" + camelCase(entry.getCode()!!))
             .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
 
     builder.addParameter(getTypeName("org.slf4j.Logger"), "logger")
 
-    val sb1 : StringBuilder = StringBuilder("logger." + entry.defaultLevel + "(\"").append(entry.message)
+    val sb1 : StringBuilder = StringBuilder("logger." + entry.getDefaultLevel() + "(\"").append(entry.getMessage())
 
-    entry.variables.forEach{v ->
-        val mapped = config.mappings.filter { m -> m.name == v }.first()
-        builder.addParameter(getTypeName(mapped.type), mapped.name)
+    entry.getVariables().forEach{v ->
+        val mapped = config.getMappings().filter { m -> m.getName() == v }.first()
+        builder.addParameter(getTypeName(mapped.getType()!!), mapped.getName())
         sb1.append(" {}")
     }
 
@@ -180,17 +179,17 @@ fun createSentencesByCode(entry: SentenceEntry, config: MappingConfig): MethodSp
 }
 
 fun createSentencesByCodeJDK7(entry: SentenceEntry, config: MappingConfig): MethodSpec {
-    val builder = MethodSpec.methodBuilder("audit" + camelCase(entry.code))
+    val builder = MethodSpec.methodBuilder("audit" + camelCase(entry.getCode()!!))
             .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
 
     builder.addParameter(getTypeName("org.slf4j.Logger"), "logger")
     builder.addParameter(getTypeName("org.slf4j.event.Level"), "level")
 
-    val sb1 : StringBuilder = StringBuilder("(\"").append(entry.message)
+    val sb1 : StringBuilder = StringBuilder("(\"").append(entry.getMessage())
 
-    entry.variables.forEach{v ->
-        val mapped = config.mappings.filter { m -> m.name.equals(v) }.first()
-        builder.addParameter(getTypeName(mapped.type), mapped.name)
+    entry.getVariables().forEach{v ->
+        val mapped = config.getMappings().filter { m -> m.getName().equals(v) }.first()
+        builder.addParameter(getTypeName(mapped.getType()!!), mapped.getName())
         sb1.append(" {}")
     }
 
@@ -220,21 +219,21 @@ fun createSentencesByCodeJDK7(entry: SentenceEntry, config: MappingConfig): Meth
 }
 
 fun createSentencesByCodeJDK8(entry: SentenceEntry, config: MappingConfig): MethodSpec {
-    val builder = MethodSpec.methodBuilder("audit" + camelCase(entry.code))
+    val builder = MethodSpec.methodBuilder("audit" + camelCase(entry.getCode()!!))
             .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
 
-    when(entry.variables.size) {
+    when(entry.getVariables().size) {
         0 ->     builder.addParameter(getTypeName("MonoConsumer"), "logger")
         1 ->     builder.addParameter(getTypeName("BiConsumer"), "logger")
         2 ->     builder.addParameter(getTypeName("TriConsumer"), "logger")
         else ->     builder.addParameter(getTypeName("ManyConsumer"), "logger")
     }
 
-    val sb1 : StringBuilder = StringBuilder("logger.accept(\"").append(entry.message)
+    val sb1 : StringBuilder = StringBuilder("logger.accept(\"").append(entry.getMessage())
 
-    entry.variables.forEach{v ->
-        val mapped = config.mappings.filter { m -> m.name.equals(v) }.first()
-        builder.addParameter(getTypeName(mapped.type), mapped.name)
+    entry.getVariables().forEach{v ->
+        val mapped = config.getMappings().filter { m -> m.getName().equals(v) }.first()
+        builder.addParameter(getTypeName(mapped.getType()!!), mapped.getName())
         sb1.append(" {}")
     }
 
@@ -248,16 +247,16 @@ fun createSentencesByCodeJDK8(entry: SentenceEntry, config: MappingConfig): Meth
 
 
 fun createSentencesByCodeWithLevel(entry: SentenceEntry, config: MappingConfig): MethodSpec {
-    val builder = MethodSpec.methodBuilder("audit" + camelCase(entry.code))
+    val builder = MethodSpec.methodBuilder("audit" + camelCase(entry.getCode()!!))
             .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
 
     builder.addParameter(getTypeName("org.slf4j.Logger"), "logger")
-    val paramsArray : Array<Object> = Array(entry.variables.size) { i -> entry.variables[i] as Object}
-    val sb1 : StringBuilder = StringBuilder("logger.info(\"").append(entry.message)
+    val paramsArray : Array<Object> = Array(entry.getVariables().size) { i -> entry.getVariables()[i] as Object}
+    val sb1 : StringBuilder = StringBuilder("logger.info(\"").append(entry.getMessage())
 
-    entry.variables.forEach{v ->
-        val mapped = config.mappings.filter { m -> m.name.equals(v) }.first()
-        builder.addParameter(getTypeName(mapped.type), mapped.name)
+    entry.getVariables().forEach{v ->
+        val mapped = config.getMappings().filter { m -> m.getName().equals(v) }.first()
+        builder.addParameter(getTypeName(mapped.getType()!!), mapped.getName())
         sb1.append(" {}")
     }
 
@@ -272,25 +271,25 @@ fun createSentencesByCodeWithLevel(entry: SentenceEntry, config: MappingConfig):
 
 
 fun createDollarString(entry: SentenceEntry): String {
-    return if(entry.variables.isEmpty()) {
+    return if(entry.getVariables().isEmpty()) {
         ""
     } else {
-        entry.variables.joinToString(",", prefix = ",")
+        entry.getVariables().joinToString(",", prefix = ",")
     }
 
 }
 
 fun createFunctionString(entry: SentenceEntry): String {
-    return if(entry.variables.isEmpty()) {
+    return if(entry.getVariables().isEmpty()) {
         ""
     } else {
-        entry.variables.map { s -> generateKvFunctionName(s) + "(" + s + ")" }.joinToString(",", prefix = ",")
+        entry.getVariables().map { s -> generateKvFunctionName(s) + "(" + s + ")" }.joinToString(",", prefix = ",")
     }
 
 }
 
 fun createSentencesBySentence(entry: SentenceEntry, config: MappingConfig): MethodSpec {
-    return MethodSpec.methodBuilder("audit" + camelCase(entry.code))
+    return MethodSpec.methodBuilder("audit" + camelCase(entry.getCode()!!))
             .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
             .build()
 }

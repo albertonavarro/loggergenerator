@@ -1,5 +1,6 @@
 package com.navid.loggergenerator
 
+import com.navid.loggergenerator.config.MappingConfig
 import java.io.File
 
 fun genHtml(mappingConfig: MappingConfig, htmlFileName: String, outputFolder: String) {
@@ -24,11 +25,11 @@ fun genHtml(mappingConfig: MappingConfig, htmlFileName: String, outputFolder: St
                             }
                         }
                         tbody{
-                            for (me in mappingConfig.mappings) {
+                            for (me in mappingConfig.getMappings()) {
                                 tr{
-                                    td{ +me.name }
-                                    td{ +me.type}
-                                    td{ +me.description}
+                                    td{ +me.getName()!! }
+                                    td{ +me.getType()!!}
+                                    td{ +me.getDescription()!!}
                                 }
                             }
                         }
@@ -45,13 +46,13 @@ fun genHtml(mappingConfig: MappingConfig, htmlFileName: String, outputFolder: St
                             }
                         }
                         tbody{
-                            for (saying in mappingConfig.sentences) {
+                            for (saying in mappingConfig.getSentences()) {
                                 tr{
-                                    td{ + saying.code }
-                                    td{ + saying.message}
+                                    td{ + saying.getCode()!! }
+                                    td{ + saying.getMessage()!!}
                                     td{
                                         ul {
-                                            for (variable in saying.variables) {
+                                            for (variable in saying.getVariables()) {
                                                 li { +variable}
                                             }
                                         }
@@ -59,7 +60,7 @@ fun genHtml(mappingConfig: MappingConfig, htmlFileName: String, outputFolder: St
                                     }
                                     td {
                                         ul {
-                                            for (extradata in saying.extradata!!) {
+                                            for (extradata in saying.getExtradata()!!) {
                                                 li { +(extradata.key + "=" + extradata.value)}
                                             }
                                         }
