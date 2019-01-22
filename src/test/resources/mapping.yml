@@ -1,4 +1,5 @@
 version: 1
+project-name: loggergenerator
 mappings:
   - name: objectId
     type: java.lang.String
@@ -12,6 +13,15 @@ mappings:
   - name: primitive
     type: int
     description: primitives are supported
+  - name: aid
+    type: java.util.UUID
+    description: Action Id. Uniquely identifies an action flow
+  - name: pid
+    type: java.util.UUID
+    description: IId that generated this action.
+  - name: uid
+    type: java.lang.String
+    description: User id for the current action id.
 sentences:
   - code: COD_1
     message: "message example with all parameters"
@@ -27,3 +37,7 @@ sentences:
     defaultLevel: info
     variables: []
     extradata: {}
+context:
+  - aid
+  - pid
+  - uid
