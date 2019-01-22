@@ -10,12 +10,33 @@ data class ConfigValidation(val config: MappingConfig) {
     fun validate() {
         val errorMessages : ArrayList<String> = ArrayList()
         errorMessages += validateVersion()
+        errorMessages += validateProjectName()
         errorMessages += validateCompleteMappings()
         errorMessages += validateCompleteSentences()
         errorMessages += validateMappingSentenceTypeReferences()
+        errorMessages += validateMappingContextTypeReferences()
+
         if(!errorMessages.isEmpty()) {
             throw ValidationException(errorMessages)
         }
+    }
+
+    private fun validateProjectName(): List<String> {
+        val result : ArrayList<String> = ArrayList()
+        if (config.getProjectName() == null) {
+            result.add("project-name == null. Project name can't be null.")
+        } else {
+            if (config.getProjectName()!!.isEmpty()) {
+                result.add("project-name.size == 0. Project name can't be empty")
+            }
+        }
+        return result
+    }
+
+    private fun validateMappingContextTypeReferences(): List<String> {
+        val result : ArrayList<String> = ArrayList()
+
+        return result
     }
 
     private fun validateVersion(): List<String> {

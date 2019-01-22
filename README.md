@@ -1,7 +1,8 @@
 # LoggerGenerator
 
 ## Abstract
-LoggerGenerator is a code generator tool from a description file, following the practices from https://looking4q.blogspot.com/2018/11/logging-cutting-edge-practices.html 
+LoggerGenerator is a code generator tool from a description file, following the practices from [Looking4Q Cutting Edge Logging Practices]
+(https://looking4q.blogspot.com/2018/11/logging-cutting-edge-practices.html)
 
 Quick list of reasons to use a generator like this:
 
@@ -46,6 +47,7 @@ Description is in YAML format with the following tree structure:
 ```
 Root
 ├ version: 1
+├ project-name: Project name.
 ├ mappings: List of mapping entries (0..N)
 │  ├ name: variable name
 │  │ type: java class for the variable
@@ -54,16 +56,20 @@ Root
 │  │ type: java class for the variable
 │  │ description: free text to clear up ambiguities
 │  ...
-└ sayings: List of saying entries (0..N)
-   ├ code: saying code
-   │ message: log message
-   │ variables: required variables (0..N)
-   │  ├ name: mappings-declared name
-   │  ├ name: other mappings-declared name
-   │  └ name: yet another mappings-declared name
-   │ extradata: custom information for the log entry (0..N)
-   │  ├ key: value
-   │  └ key: value
+├ sayings: List of saying entries (0..N)
+│  ├ code: saying code
+│  │ message: log message
+│  │ variables: required variables (0..N)
+│  │  ├ name: mappings-declared name
+│  │  ├ name: other mappings-declared name
+│  │  └ name: yet another mappings-declared name
+│  │ extradata: custom information for the log entry (0..N)
+│  │  ├ key: value
+│  │  └ key: value
+│  ...
+└ context: Set of keys that you might expect as part of the logging context system (MDC in slf4j)
+   ├ key existing in mappings
+   ├ other key existing in mapping
    ...
 ```
      
@@ -71,6 +77,7 @@ Example:
 
 ```yaml
 version: 1
+project-name: coin-example
 mappings:
   - name: amount
     type: java.lang.Integer
@@ -81,6 +88,9 @@ mappings:
   - name: coins
     type: int
     description: Number of coins in a combination.
+  - name: iid
+    type: java.util.UUID
+    description: Interaction id.
 sentences:
   - code: ResultCombinations
     message: "Number of combinations of getting change"
@@ -96,6 +106,8 @@ sentences:
       - coins
     extradata: {}
     defaultLevel: info
+context:
+  - iid
 ```
 
 ### Expected result
@@ -181,6 +193,18 @@ public final class LoggerUtils {
   public interface ManyConsumer {
     void accept(String var1, Object... var2);
   }
+  
+  public static void setContextIid(UUID iid) {
+    org.slf4j.MDC.put("ctx.iid",String.valueOf(iid));
+  }
+    
+  public static void removeContextIid() {
+    org.slf4j.MDC.remove("iid");
+  }
+    
+  public static void resetContext() {
+    org.slf4j.MDC.clear();
+  }
 }
 ```
 
@@ -191,7 +215,7 @@ import static com.navid.codegen.LoggerUtils.*;
 import static java.util.Arrays.asList;
 
 [...]
-
+        setContextIid(UUID.randomUUID());
         int amount = 12;
         int[] coins = {2, 4, 5};
         
@@ -204,6 +228,7 @@ import static java.util.Arrays.asList;
 
         //using default log level in sentences
         auditResultMinimum(logger, amount, minimumCoins(coins, amount));
+        removeContextIid();
 ```
 
 ## Future roadmap

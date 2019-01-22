@@ -7,29 +7,89 @@ fun genHtml(mappingConfig: MappingConfig, htmlFileName: String, outputFolder: St
     val result =
             html {
                 head {
-                    title { +"Project Log Reference" }
+                    title { + (mappingConfig.getProjectName() + " Log Reference") }
+                    style {+("table {\n" +
+                            "  border: 1px solid #1C6EA4;\n" +
+                            "  background-color: #EEEEEE;\n" +
+                          //  "  width: 100%;\n" +
+                            "  text-align: left;\n" +
+                            "  border-collapse: collapse;\n" +
+                            "}\n" +
+                            "table td, table th {\n" +
+                            "  border: 1px solid #AAAAAA;\n" +
+                            "  padding: 3px 2px;\n" +
+                            "}\n" +
+                            "table tr:target {\n" +
+                            "  background-color: #ffa;\n" +
+                            "}\n" +
+                            "table tbody td {\n" +
+                            "  font-size: 13px;\n" +
+                            "}\n" +
+                            "table thead {\n" +
+                            "  background: #1C6EA4;\n" +
+                            "  background: -moz-linear-gradient(top, #5592bb 0%, #327cad 66%, #1C6EA4 100%);\n" +
+                            "  background: -webkit-linear-gradient(top, #5592bb 0%, #327cad 66%, #1C6EA4 100%);\n" +
+                            "  background: linear-gradient(to bottom, #5592bb 0%, #327cad 66%, #1C6EA4 100%);\n" +
+                            "  border-bottom: 2px solid #444444;\n" +
+                            "}\n" +
+                            "table thead th {\n" +
+                            "  font-size: 15px;\n" +
+                            "  font-weight: bold;\n" +
+                            "  color: #FFFFFF;\n" +
+                            "  border-left: 2px solid #D0E4F5;\n" +
+                            "}\n" +
+                            "table thead th:first-child {\n" +
+                            "  border-left: none;\n" +
+                            "}\n" +
+                            "\n" +
+                            "table tfoot {\n" +
+                            "  font-size: 14px;\n" +
+                            "  font-weight: bold;\n" +
+                            "  color: #FFFFFF;\n" +
+                            "  background: #D0E4F5;\n" +
+                            "  background: -moz-linear-gradient(top, #dcebf7 0%, #d4e6f6 66%, #D0E4F5 100%);\n" +
+                            "  background: -webkit-linear-gradient(top, #dcebf7 0%, #d4e6f6 66%, #D0E4F5 100%);\n" +
+                            "  background: linear-gradient(to bottom, #dcebf7 0%, #d4e6f6 66%, #D0E4F5 100%);\n" +
+                            "  border-top: 2px solid #444444;\n" +
+                            "}\n" +
+                            "table tfoot td {\n" +
+                            "  font-size: 14px;\n" +
+                            "}\n" +
+                            "table tfoot .links {\n" +
+                            "  text-align: right;\n" +
+                            "}\n" +
+                            "table tfoot .links a{\n" +
+                            "  display: inline-block;\n" +
+                            "  background: #1C6EA4;\n" +
+                            "  color: #FFFFFF;\n" +
+                            "  padding: 2px 8px;\n" +
+                            "  border-radius: 5px;\n" +
+                            "}" )}
                 }
                 body {
-                    h1 { +"Project Log Reference" }
+                    h1 { + (mappingConfig.getProjectName() + " Log Reference") }
 
                     h2 { +"What's this document" }
                     p { +"This document summarizes all exportable log knowledge for this project." }
+                    p { +"Attribute names might differ from final ones depending on your Logback configuration." }
 
                     h2 { +"Declared types:" }
                     table {
                         thead{
                             tr{
-                                td{ +"Attribute name" }
-                                td{ +"Attribute type"}
-                                td{ +"Description"}
+                                th{ +"Attribute name" }
+                                th{ +"Attribute type"}
+                                th{ +"Description"}
                             }
                         }
                         tbody{
                             for (me in mappingConfig.getMappings()) {
-                                tr{
-                                    td{ +me.getName()!! }
-                                    td{ +me.getType()!!}
-                                    td{ +me.getDescription()!!}
+                                trId(me.getName()!!) {
+                                    td {
+                                        +me.getName()!!
+                                    }
+                                    td { +me.getType()!! }
+                                    td { +me.getDescription()!! }
                                 }
                             }
                         }
@@ -39,10 +99,10 @@ fun genHtml(mappingConfig: MappingConfig, htmlFileName: String, outputFolder: St
                     table {
                         thead{
                             tr{
-                                td{ +"Code" }
-                                td{ +"Message"}
-                                td{ +"Variables"}
-                                td{ +"Extra data"}
+                                th{ +"Code" }
+                                th{ +"Message"}
+                                th{ +"Variables"}
+                                th{ +"Extra data"}
                             }
                         }
                         tbody{
@@ -53,7 +113,7 @@ fun genHtml(mappingConfig: MappingConfig, htmlFileName: String, outputFolder: St
                                     td{
                                         ul {
                                             for (variable in saying.getVariables()) {
-                                                li { +variable}
+                                                li { a(href = "#$variable") { +"$variable" }}
                                             }
                                         }
 
@@ -66,6 +126,27 @@ fun genHtml(mappingConfig: MappingConfig, htmlFileName: String, outputFolder: St
                                         }
                                     }
                                 }
+                            }
+                        }
+                    }
+
+                    h2 { +"Contextual information" }
+                    table {
+                        thead{
+                            tr{
+                                th{ +"Attribute name" }
+                                th{ +"Type reference" }
+                            }
+                        }
+                        tbody{
+                            for (contextKey in mappingConfig.getContext()) {
+                                tr{
+                                    td{ + ("ctx.$contextKey") }
+                                    td {
+                                        a(href = "#$contextKey") { +"$contextKey" }
+                                    }
+                                }
+
                             }
                         }
                     }
@@ -135,9 +216,12 @@ class HTML() : TagWithText("html") {
 
 class Head() : TagWithText("head") {
     fun title(init: Title.() -> Unit) = initTag(Title(), init)
+    fun style(init: Style.() -> Unit) = initTag(Style(), init)
 }
 
 class Title() : TagWithText("title")
+class Style() : TagWithText("style")
+
 
 abstract class BodyTag(name: String) : TagWithText(name) {
     fun b(init: B.() -> Unit) = initTag(B(), init)
@@ -149,6 +233,14 @@ abstract class BodyTag(name: String) : TagWithText(name) {
     fun a(href: String, init: A.() -> Unit) {
         val a = initTag(A(), init)
         a.href = href
+    }
+    fun trId(id: String, init: TR.() -> Unit) {
+        val tr = initTag(TR(), init)
+        tr.id = id
+    }
+    fun aId(id: String, init: A.() -> Unit) {
+        val a = initTag(A(), init)
+        a.id = id
     }
 }
 
@@ -173,16 +265,31 @@ class TBody(): BodyTag("tbody") {
     fun tr(init: TR.() -> Unit) = initTag(TR(), init)
 }
 class TR(): BodyTag("tr") {
+    var id: String
+        get() = attributes["id"]!!
+        set(value) {
+            attributes["id"] = value
+        }
     fun td(init: TD.() -> Unit) = initTag(TD(), init)
+    fun th(init: TH.() -> Unit) = initTag(TH(), init)
+}
+
+class TH(): BodyTag("th") {
+    fun th(init: TH.() -> Unit) = initTag(TH(), init)
 }
 
 class TD(): BodyTag("td")
 
 class A() : BodyTag("a") {
-    public var href: String
+    var href: String
         get() = attributes["href"]!!
         set(value) {
             attributes["href"] = value
+        }
+    var id: String
+        get() = attributes["id"]!!
+        set(value) {
+            attributes["id"] = value
         }
 }
 
