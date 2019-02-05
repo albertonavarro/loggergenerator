@@ -4,6 +4,10 @@
 LoggerGenerator is a code generator tool from a description file, following the practices from [Looking4Q Cutting Edge Logging Practices]
 (https://looking4q.blogspot.com/2018/11/logging-cutting-edge-practices.html)
 
+Gradle plugin and examples: https://github.com/albertonavarro/loggergenerator-gradle-plugin
+
+Blog entry with more usage output including HTML documentation: https://looking4q.blogspot.com/2019/01/level-up-logs-and-elk-contract-first.html
+
 Quick list of reasons to use a generator like this:
 
 * Structured Arguments is required or desirable
