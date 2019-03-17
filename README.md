@@ -95,13 +95,17 @@ mappings:
   - name: iid
     type: java.util.UUID
     description: Interaction id.
+  - name: importance
+    type: java.lang.String
+    descrption: log line importance
 sentences:
   - code: ResultCombinations
     message: "Number of combinations of getting change"
     variables:
       - amount
       - combinations
-    extradata: {}
+    extradata: 
+      - importance: high
     defaultLevel: info
   - code: ResultMinimum
     message: "Minimum number of coins required"

@@ -111,9 +111,6 @@ private fun generateConsumersJDK8(genClass: TypeSpec.Builder) {
             .build())
 }
 
-fun validateMappingConfig(mappingConfig: MappingConfig) {
-//logger is a reserved word
-}
 
 fun camelCase(string: String): String {
     return string.substring(0, 1).toUpperCase() + string.substring(1)
@@ -169,7 +166,7 @@ fun deleteContext(entry: String, config: MappingConfig): MethodSpec {
 
     val mapped = config.getMappings().filter { m -> m.getName().equals(entry) }.first()
 
-    builder.addStatement("org.slf4j.MDC.remove(\$S)", mapped.getName())
+    builder.addStatement("org.slf4j.MDC.remove(\$S)", "ctx." + mapped.getName())
 
     return builder.build()
 }
@@ -218,7 +215,13 @@ fun createSentencesByCode(entry: SentenceEntry, config: MappingConfig): MethodSp
         sb1.append(" {}")
     }
 
-    sb1.append("\"").append(createFunctionString(entry)).append(")")
+    entry.getExtradata().forEach{ v ->
+        sb1.append(" {}")
+    }
+
+    sb1.append("\"").append(createFunctionString(entry))
+    sb1.append(createExtradataString(entry, config))
+    sb1.append(")")
 
     builder.addStatement(sb1.toString())
 
@@ -240,8 +243,13 @@ fun createSentencesByCodeJDK7(entry: SentenceEntry, config: MappingConfig): Meth
         sb1.append(" {}")
     }
 
-    sb1.append("\"").append(createFunctionString(entry)).append(")")
+    entry.getExtradata().forEach{ v ->
+        sb1.append(" {}")
+    }
 
+    sb1.append("\"").append(createFunctionString(entry))
+    sb1.append(createExtradataString(entry, config))
+    sb1.append(")")
 
     builder.beginControlFlow("switch(level)")
     builder.addCode("case ERROR:\n")
@@ -284,7 +292,13 @@ fun createSentencesByCodeJDK8(entry: SentenceEntry, config: MappingConfig): Meth
         sb1.append(" {}")
     }
 
-    sb1.append("\"").append(createFunctionString(entry)).append(")")
+    entry.getExtradata().forEach{ v ->
+        sb1.append(" {}")
+    }
+
+    sb1.append("\"").append(createFunctionString(entry))
+    sb1.append(createExtradataString(entry, config))
+    sb1.append(")")
 
     builder.addStatement(sb1.toString())
 
@@ -329,7 +343,25 @@ fun createFunctionString(entry: SentenceEntry): String {
     } else {
         entry.getVariables().map { s -> generateKvFunctionName(s) + "(" + s + ")" }.joinToString(",", prefix = ",")
     }
+}
 
+fun createExtradataString(entry: SentenceEntry, config: MappingConfig): String {
+    return if (entry.getExtradata().isEmpty()) {
+        ""
+    } else {
+
+        entry.getExtradata().map {
+            s ->
+            var mapping = config.getMappings().stream().filter{m -> m.getName()!! == s.key}.findFirst().get()
+            when(mapping.getType()){
+                "java.lang.String" -> generateKvFunctionName(s.key) + "(\"" + s.value + "\")"
+                "java.lang.Long","long" -> generateKvFunctionName(s.key) + "(" + s.value + "L)"
+                "java.lang.Float","float" -> generateKvFunctionName(s.key) + "(" + s.value + "f)"
+
+                else ->  generateKvFunctionName(s.key) + "(" + s.value + ")"
+        }
+        }.joinToString(",", prefix = ",")
+    }
 }
 
 fun createSentencesBySentence(entry: SentenceEntry, config: MappingConfig): MethodSpec {

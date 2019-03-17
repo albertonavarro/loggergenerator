@@ -22,21 +22,37 @@ mappings:
   - name: uid
     type: java.lang.String
     description: User id for the current action id.
+  - name: importance
+    type: java.lang.String
+    description: Importance of the message, CRITICAL, IMPORTANT or DEBUG
+  - name: extraPF
+    type: float
+    description: Example of extradata using primitive float
+  - name: extraInteger
+    type: java.lang.Integer
+    description: Example of extradata using object int
+  - name: extraLong
+    type: long
+    description: Example of extradata using object long
 sentences:
   - code: COD_1
     message: "message example with all parameters"
     defaultLevel: warn
     variables:
-        - objectId
-        - status
-        - madeUp
-        - primitive
-    extradata: {}
+      - objectId
+      - status
+      - madeUp
+      - primitive
+    extradata:
+      importance: critical
   - code: COD_2
     message: "message example without parameters"
     defaultLevel: info
     variables: []
-    extradata: {}
+    extradata:
+      extraPF: 3.14
+      extraInteger: 6
+      extraLong: 7864675848548
 context:
   - aid
   - pid

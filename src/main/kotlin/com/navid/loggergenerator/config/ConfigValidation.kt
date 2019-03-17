@@ -15,6 +15,7 @@ data class ConfigValidation(val config: MappingConfig) {
         errorMessages += validateCompleteSentences()
         errorMessages += validateMappingSentenceTypeReferences()
         errorMessages += validateMappingContextTypeReferences()
+        errorMessages += validateExtradataTypes()
 
         if(!errorMessages.isEmpty()) {
             throw ValidationException(errorMessages)
@@ -49,6 +50,22 @@ data class ConfigValidation(val config: MappingConfig) {
 
     private fun validateMappingSentenceTypeReferences(): List<String> {
         val result : ArrayList<String> = ArrayList()
+
+        return result
+    }
+
+    private fun validateExtradataTypes(): List<String> {
+        val result : ArrayList<String> = ArrayList()
+
+        for (index in (config.getSentences() as List<*>).indices) {
+            val sentence = config.getSentences()[index]
+
+            for(indexMeta in (sentence.getExtradata().entries)) {
+                if(!config.getMappings().stream().anyMatch{m -> m.getName()!! == indexMeta.key}){
+                    result.add("sentences[$index].extradata." + indexMeta.key + " with type String not found in mappings")
+                }
+            }
+        }
 
         return result
     }
