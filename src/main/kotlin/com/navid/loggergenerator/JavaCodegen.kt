@@ -277,7 +277,7 @@ fun createSentencesByCodeJDK8(entry: SentenceEntry, config: MappingConfig): Meth
     val builder = MethodSpec.methodBuilder("audit" + camelCase(entry.getCode()!!))
             .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
 
-    when (entry.getVariables().size) {
+    when (entry.getVariables().size + entry.getExtradata().size) {
         0 -> builder.addParameter(getTypeName("MonoConsumer"), "logger")
         1 -> builder.addParameter(getTypeName("BiConsumer"), "logger")
         2 -> builder.addParameter(getTypeName("TriConsumer"), "logger")
